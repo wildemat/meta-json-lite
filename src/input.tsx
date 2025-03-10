@@ -19,8 +19,9 @@ export const InputText: React.FC<{
 export const ParseButton: React.FC<{
   ref: React.RefObject<string>;
 }> = ({ ref }) => {
-  console.log("render button");
-  const [parsed, setParsed] = useState({});
+  console.log("render button", ref.current);
+  // TODO: type inference
+  const [parsed, setParsed] = useState<any>({});
   const onClick: ReactEventHandler = (e) => {
     e.stopPropagation();
     try {
@@ -32,7 +33,13 @@ export const ParseButton: React.FC<{
   return (
     <>
       <button onClick={onClick}>Parse</button>
-      <p>{JSON.stringify(parsed)}</p>
+      {Object.entries(parsed).map(([key, value]) => {
+        return (
+          <p>
+            {`${key}`}: {`${value}`}
+          </p>
+        );
+      })}
     </>
   );
 };
