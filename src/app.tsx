@@ -4,9 +4,21 @@ import { InputText, ParseButton } from "./input";
 import { useRef } from "react";
 
 const App = () => {
-  const textRef = useRef("");
+  const textRef = useRef(
+    '{"test": [1,2,3], "hi": 0, "third": {"yo": [2,3,4]}}'
+  );
   return (
     <div>
+      <p>
+        Samples: <br />
+        {'{"test": [1,2,3], "hi": 0, "third": {"yo": [2,3,4]}}'} <br />
+        {'[1, "two", {"three": 4}, [1,2]]'}
+        <br />
+        {1}
+        <br />
+        {"two"}
+        <br />
+      </p>
       <p>Hello World</p>
       <InputText ref={textRef} />
       <ParseButton ref={textRef} />
