@@ -71,12 +71,12 @@ const ObjectNode = ({ name, value }: { name?: string; value: NodeType }) => {
   const [children, setChildren] = useState<any>([]);
   const onClick = () => {
     const nodes: any = [];
-    Object.entries(value).forEach(([key, value]) => {
-      // Stick children in an outlet
-      // const node = new Node(value);
-      nodes.push({ key, element: <TypedNode data={value} /> });
-      // console.log(key, node.type);
-    });
+    // Object.entries(value).forEach(([key, value]) => {
+    //   // Stick children in an outlet
+    //   // const node = new Node(value);
+    //   nodes.push({ key, element: <TypedNode data={value} /> });
+    //   // console.log(key, node.type);
+    // });
     setChildren(nodes);
   };
   return (

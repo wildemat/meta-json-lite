@@ -11,83 +11,96 @@ export class MemoryDB {
 
   buildStore() {
     const map: { [key: string]: DBNode } = {};
-    const rootNode = new DBNode(this.rawData);
     // TODO: iteratively
-    const insertNode = (dbNode: DBNode) => {
-      const nodeID = this.generateUUID();
-      const { type } = dbNode;
-      // TODO: the store doesn't need the _value of the node. Values can be built by traversing the
-      // tree and creating objects/arrays based on children and keys etc.
-      map[nodeID] = dbNode;
+    const insertNode = (data: NodeType, parentID?: string, key?: string) => {
+      const dbNode = new DBNode(data, parentID, key);
+      const { id } = dbNode;
+      map[id] = dbNode;
       const childrenIDs: Array<string> = [];
-      if (type == "Array") {
-        (dbNode.children as Array<NodeType>).forEach((child) => {
-          const childNode = new DBNode(child, nodeID);
-          // TODO: don't need this if new DBNode generates an ID
-          const grandchildID = insertNode(childNode);
-          childrenIDs.push(grandchildID);
-        });
-      } else if (type == "Object") {
-        (dbNode.children as Array<[string, NodeType]>).forEach(
-          ([key, value]) => {
-            const childNode = new DBNode(value, nodeID, key);
-            const grandchildID = insertNode(childNode);
-            childrenIDs.push(grandchildID);
-          }
-        );
+      if (dbNode.hasChildren) {
+        if (dbNode.type == "Array") {
+          // TODO: better type inference
+          Object.entries(data as ParentNode).forEach(([_, value]) => {
+            const childID = insertNode(value, id);
+            childrenIDs.push(childID);
+          });
+        } else if (dbNode.type == "Object") {
+          Object.entries(data as ParentNode).forEach(([key, value]) => {
+            const childID = insertNode(value, id, key);
+            childrenIDs.push(childID);
+          });
+        }
       } else {
-        map[nodeID] = dbNode;
+        dbNode.value = data;
+        map[id] = dbNode;
       }
-      dbNode.setChildIDs(childrenIDs);
-      return nodeID;
+      dbNode.children = childrenIDs;
+      return id;
     };
-    insertNode(rootNode);
+    insertNode(this.rawData);
     return map;
-  }
-
-  generateUUID(): string {
-    return uuidv4();
   }
 }
 
-const queryStore = (nodeID: string) => {
+const query = (nodeID: string) => {
   // get the node with the ID
   // traverse tree and create arrays/objects as necessary
+
+  function serialize() {
+    // Traverse and build out the object value.
+    // TODO: cached retrieval
+  }
+  return {
+    data: {},
+    serialize,
+  };
 };
 
-export type NodeType = Array<any> | Object | String | Number;
+type ParentNode = Array<NodeType> | { [key: string]: NodeType };
+
+export type NodeType =
+  | (ParentNode & String)
+  | Number
+  | Boolean
+  | Symbol
+  | BigInt
+  | null
+  | undefined;
+
 export class DBNode {
-  _key?: string;
-  _value;
-  _parentID?: string;
-  // TODO: should _children just be array of nodeIDs
-  _children?: Array<NodeType>;
-  childrenIDs?: Array<string>;
+  key?: string;
+  id: string;
+  parentID?: string;
+  private _children?: Array<string>;
+  // TODO: only the leaf nodes should have a value. Value isn't always a primitive. could be empty object
   type;
+  private _value?: NodeType;
+  hasChildren: boolean;
   // TODO should there be a nodeID field
   constructor(nodeData: NodeType, parentID?: string, key?: string) {
-    this._value = nodeData;
     this.type = Object.prototype.toString
-      .call(this._value)
+      .call(nodeData)
       .replace("[object ", "")
       .replace("]", "");
-    this._parentID = parentID;
-    this._key = key;
+    this.parentID = parentID;
+    this.key = key;
+    this.hasChildren =
+      (this.type == "Array" || this.type == "Object") &&
+      !!Object.entries(nodeData as ParentNode).length;
+    this.id = uuidv4();
   }
-  setChildIDs(ids: Array<string>) {
-    this.childrenIDs = ids;
-  }
-  toString() {
-    return JSON.stringify(this._value);
-  }
-  hasChildren() {
-    return (
-      this.type == "Array" ||
-      (this.type == "Object" && Object.entries(this._value).length)
-    );
+
+  set children(ids: Array<string>) {
+    this._children = ids;
   }
   get children() {
-    if (!this.hasChildren()) return [];
-    return this.type == "Array" ? this._value : Object.entries(this._value);
+    return this._children || [];
+  }
+
+  set value(value: NodeType) {
+    this._value = value;
+  }
+  get value() {
+    return this._value;
   }
 }
