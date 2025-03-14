@@ -21,7 +21,6 @@ export const InputText: React.FC<{
 export const ParseButton: React.FC<{
   ref: React.RefObject<string>;
 }> = ({ ref }) => {
-  console.log("render button", ref.current);
   // TODO: type inference
   const [rootData, setRootData] = useState<any>();
   const onClick: ReactEventHandler = (e) => {
@@ -30,6 +29,9 @@ export const ParseButton: React.FC<{
       const data = JSON.parse(ref.current);
       setRootData(data);
       const { store, getNode } = new MemoryDB(data);
+      // TODO: get root node from store (need a rootNodeID attribute on the store);
+      // Render an element for it, onClick root.children => render
+      // then for each node have like a "Deep Data" button that shows text for everything under it.
       console.log(store);
       const firstID = Object.keys(store)[0];
       const first = getNode(firstID);

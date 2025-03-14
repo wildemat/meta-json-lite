@@ -41,33 +41,42 @@ export class MemoryDB {
     return map;
   }
   // {"test": [1,2,3], "hi": 0, "third": {"yo": [2,3,4]}}
+  // [1, "two", {"three": 4}, [1,2]]
   getNodeData = (node: DBNode, parentStruct?: ParentNode) => {
+    // TODO: iterate on this w/ children and stack instead of recursive
+
     // TODO: don't need this declared on every iteration
-    const _maybeInsertIntoParent = (value: NodeType) => {
-      if (parentStruct) {
-        if (node.key) {
-          (parentStruct as ObjectParent)[node.key] = value;
+    const _maybeInsertIntoParent = (
+      value: NodeType,
+      parent?: ParentNode,
+      key?: string
+    ) => {
+      if (parent) {
+        if (key) {
+          // doesn't work w/ object in an array...
+          (parent as ObjectParent)[key] = value;
         } else {
-          (parentStruct as ArrayParent).push(value);
+          (parent as ArrayParent).push(value);
         }
       }
-      return parentStruct;
+      return parent;
     };
     if (!node.hasChildren) {
       // we are at a leaf node. leaf nodes have actual "value"s
       // if we don't have to give back the updated parent, just return the raw leaf node value
-      return _maybeInsertIntoParent(node.value) || node.value;
+      return (
+        _maybeInsertIntoParent(node.value, parentStruct, node.key) || node.value
+      );
     } else {
       if (node.type == "Array") {
         const parentArray: ArrayParent = [];
         node.children.forEach((childID) => {
           const childNode = this.store[childID];
-          // with each iteration, parentObject reference is getting updated
+          // with each iteration, parentArray reference is getting updated
           // But we might also need to add it to the existing parent
-          const value = this.getNodeData(childNode, parentArray);
-          _maybeInsertIntoParent(value);
+          this.getNodeData(childNode, parentArray);
         });
-        _maybeInsertIntoParent(parentArray);
+        _maybeInsertIntoParent(parentArray, parentStruct, node.key);
         return parentArray;
       } else {
         // It's an object
@@ -75,10 +84,9 @@ export class MemoryDB {
         node.children.forEach((childID) => {
           const childNode = this.store[childID];
           // with each iteration, parentObject reference is getting updated
-          const value = this.getNodeData(childNode, parentObject);
-          _maybeInsertIntoParent(value);
+          this.getNodeData(childNode, parentObject);
         });
-        _maybeInsertIntoParent(parentObject);
+        _maybeInsertIntoParent(parentObject, parentStruct, node.key);
         return parentObject;
       }
     }
@@ -114,6 +122,7 @@ export type NodeType =
   | null
   | undefined;
 
+// Does not store nested objects, just references to children IDs
 export class DBNode {
   key?: string;
   id: string;
