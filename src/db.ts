@@ -107,6 +107,13 @@ export class MemoryDB {
     })();
     return node;
   };
+
+  // When clicking, we wanna show the next level of elements
+  getChildren = (parentID: string) => {
+    const node = this.store[parentID];
+    if (!node.hasChildren) return [];
+    return node.children.map((childID) => this.store[childID]);
+  };
 }
 type ObjectParent = { [key: string]: NodeType };
 type ArrayParent = Array<NodeType>;
