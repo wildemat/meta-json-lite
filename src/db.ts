@@ -40,26 +40,73 @@ export class MemoryDB {
     insertNode(this.rawData);
     return map;
   }
-}
-
-const query = (nodeID: string) => {
-  // get the node with the ID
-  // traverse tree and create arrays/objects as necessary
-
-  function serialize() {
-    // Traverse and build out the object value.
-    // TODO: cached retrieval
-  }
-  return {
-    data: {},
-    serialize,
+  // {"test": [1,2,3], "hi": 0, "third": {"yo": [2,3,4]}}
+  getNodeData = (node: DBNode, parentStruct?: ParentNode) => {
+    // TODO: don't need this declared on every iteration
+    const _maybeInsertIntoParent = (value: NodeType) => {
+      if (parentStruct) {
+        if (node.key) {
+          (parentStruct as ObjectParent)[node.key] = value;
+        } else {
+          (parentStruct as ArrayParent).push(value);
+        }
+      }
+      return parentStruct;
+    };
+    if (!node.hasChildren) {
+      // we are at a leaf node. leaf nodes have actual "value"s
+      // if we don't have to give back the updated parent, just return the raw leaf node value
+      return _maybeInsertIntoParent(node.value) || node.value;
+    } else {
+      if (node.type == "Array") {
+        const parentArray: ArrayParent = [];
+        node.children.forEach((childID) => {
+          const childNode = this.store[childID];
+          // with each iteration, parentObject reference is getting updated
+          // But we might also need to add it to the existing parent
+          const value = this.getNodeData(childNode, parentArray);
+          _maybeInsertIntoParent(value);
+        });
+        _maybeInsertIntoParent(parentArray);
+        return parentArray;
+      } else {
+        // It's an object
+        const parentObject: ObjectParent = {};
+        node.children.forEach((childID) => {
+          const childNode = this.store[childID];
+          // with each iteration, parentObject reference is getting updated
+          const value = this.getNodeData(childNode, parentObject);
+          _maybeInsertIntoParent(value);
+        });
+        _maybeInsertIntoParent(parentObject);
+        return parentObject;
+      }
+    }
   };
-};
 
-type ParentNode = Array<NodeType> | { [key: string]: NodeType };
+  getNode = (nodeID: string) => {
+    // get the node with the ID
+    // traverse tree and create arrays/objects as necessary
+    const node = this.store[nodeID];
+    // TODO: just need the DBNode instances to have access to the store...
+    // I don't want any recursive traversal to happen until the property is accessed.
+    node.data = (() => {
+      // b/c it's anonymous and executed right away then .data calls won't force refresh from the store....
+      // it'll just access the resulting value
+      console.log("cached?", !!node.data);
+      console.log("starting traversal");
+      return this.getNodeData(node);
+    })();
+    return node;
+  };
+}
+type ObjectParent = { [key: string]: NodeType };
+type ArrayParent = Array<NodeType>;
+type ParentNode = ArrayParent | ObjectParent;
 
 export type NodeType =
-  | (ParentNode & String)
+  | ParentNode
+  | String
   | Number
   | Boolean
   | Symbol
@@ -72,8 +119,13 @@ export class DBNode {
   id: string;
   parentID?: string;
   private _children?: Array<string>;
-  // TODO: only the leaf nodes should have a value. Value isn't always a primitive. could be empty object
   type;
+  // TODO: this is a callback that will be injected at query time... better way to do this?
+  // This callback gives each node access to the "global" store...
+  // Can DBNode class be a subclass of MemoryDB and do this.store? Will each node have tons of data due to its storage
+  // of 'this' ?
+  data: NodeType;
+  // TODO: only the leaf nodes should have a value. Value isn't always a primitive. could be empty object
   private _value?: NodeType;
   hasChildren: boolean;
   // TODO should there be a nodeID field

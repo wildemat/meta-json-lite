@@ -2,6 +2,8 @@
 
 Liteweight repo to explore data from a json object
 
+Edit: Actually turns out this is just an experiment on making a GUI for `jq`-esque behavior....
+
 I get a complex json object and want to extract conclusions from it. But I have to write a script to load a file, parse objects, print to console for debugging, etc.
 I want a UI to load in JSON text, convert it to usable objects and datatypes that I can query and view.
 

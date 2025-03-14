@@ -29,8 +29,17 @@ export const ParseButton: React.FC<{
     try {
       const data = JSON.parse(ref.current);
       setRootData(data);
-      const store = new MemoryDB(data);
+      const { store, getNode } = new MemoryDB(data);
       console.log(store);
+      const firstID = Object.keys(store)[0];
+      const first = getNode(firstID);
+      console.log("first node", first);
+      console.log("deep data", first.data);
+      console.log("reference match", Object.is(data, first.data));
+      console.log(
+        "stringify match",
+        JSON.stringify(data) == JSON.stringify(first.data)
+      );
     } catch (e) {
       console.log("err", e);
       alert("Bad json");
